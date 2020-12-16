@@ -6,12 +6,12 @@ const app = express();
 const http = require('http');
 const bodyParser = require('body-parser');
 const amqp = require('amqplib');
+const cors = require('cors');
 
 // Middleware
 app.use(bodyParser.json());
 
-// simulate request ids
-let lastRequestId = 1;
+app.use(cors())
 
 // RabbitMQ connection string
 const messageQueueConnectionString = process.env.CLOUDAMQP_URL;
@@ -19,20 +19,54 @@ const messageQueueConnectionString = process.env.CLOUDAMQP_URL;
 // handle the request
 app.post('/api/v1/processData', async function (req, res) {
   // save request id and increment
-  let requestId = lastRequestId;
-  lastRequestId++;
+  console.log(req.body);
 
   // connect to Rabbit MQ and create a channel
   let connection = await amqp.connect(messageQueueConnectionString);
   let channel = await connection.createConfirmChannel();
 
   // publish the data to Rabbit MQ
-  let requestData = req.body.data;
-  console.log("Published a request message, requestId:", requestId);
-  await publishToChannel(channel, { routingKey: "request", exchangeName: "processing", data: { requestId, requestData } });
+  await publishToChannel(channel, { routingKey: "request", exchangeName: "processing", data: req.body });
 
   // send the request id in the response
-  res.send({ requestId })
+  //res.send({ requestId })
+  res.sendStatus(200);
+});
+
+app.get('/api/v1/acidification', async function (req, res) {
+  console.log("aqui");
+  // connect to Rabbit MQ and create a channel
+  let connection = await amqp.connect(messageQueueConnectionString);
+  let channel = await connection.createConfirmChannel();
+
+  return new Promise((resolve, reject) => {
+    channel.consume("processing.requests", async function (msg) {
+      // parse message
+      let msgBody = msg.content.toString();
+      let data = JSON.parse(msgBody);
+      console.log("CONSUME: ", msgBody);      
+      await channel.ack(msg);
+      return res.status(200).json({
+        data: msgBody,
+      });
+    });
+
+    // handle connection closed
+    connection.on("close", (err) => {
+      return reject(err);
+    });
+
+    // handle errors
+    connection.on("error", (err) => {
+      return reject(err);
+    });
+  });
+    
+  
+
+
+  // let data = await consume({ connection, channel });
+  // console.log("RES: ", data);
 });
 
 // utility function to publish messages to a channel
@@ -65,16 +99,16 @@ async function listenForResults() {
 // consume messages from RabbitMQ
 function consume({ connection, channel, resultsChannel }) {
   return new Promise((resolve, reject) => {
-    channel.consume("processing.results", async function (msg) {
+    channel.consume("processing.requests", async function (msg) {
       // parse message
       let msgBody = msg.content.toString();
       let data = JSON.parse(msgBody);
       let requestId = data.requestId;
-      let processingResults = data.processingResults;
-      console.log("Received a result message, requestId:", requestId, "processingResults:", processingResults);
-
-      // acknowledge message as received
+      let requestData = data.requestData;
+      console.log("Received a request message, requestId:", requestId);
+      console.log("CONSUME: ", requestData);      
       await channel.ack(msg);
+      return requestData;
     });
 
     // handle connection closed
@@ -101,4 +135,4 @@ server.listen(PORT, "localhost", function (err) {
 });
 
 // listen for results on RabbitMQ
-listenForResults();
+//listenForResults();

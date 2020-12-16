@@ -1,0 +1,32 @@
+/* GERAL */
+
+body{
+    font-family: 'Poppins', sans-serif;
+}
+
+.ods14-color{
+    background-color: #0A97D9;
+    border-color: #0A97D9;
+}
+
+.btn{
+    color: white;
+}
+
+
+/* NAVBAR */
+
+.navbar{
+    color: white;
+}
+
+.navbar .navbar-brand{
+    font-size: 25px;
+}
+
+
+/* TABLE */
+
+.table tr:first-of-type{
+    font-weight: bold;
+}
