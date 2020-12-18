@@ -1,6 +1,6 @@
 ## Setup
-npm install
-node rabbit_mq_setup.js
-cd web-service
-node web-service.js
+<li>npm install</li>
+<li>node rabbit_mq_setup.js</li>
+<li>cd web-service</li>
+<li>node web-service.js</li>
 
