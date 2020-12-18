@@ -17,6 +17,7 @@ function getAcidificacao(){
     })
 }
 
+
 function insertRows(results){
     var table = document.getElementById("acidification-table");
     $("#acidification-table").empty();
